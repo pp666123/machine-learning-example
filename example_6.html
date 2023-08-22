@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Handwritten Digit Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  </head>
+  <body>
+    <h1>Handwritten Digit Recognition</h1>
+    <canvas
+      id="canvas"
+      width="280"
+      height="280"
+      style="border: 1px solid black"
+    ></canvas>
+    <button id="predictButton">Predict</button>
+    <p>Prediction: <span id="prediction"></span></p>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const context = canvas.getContext("2d");
+      const predictButton = document.getElementById("predictButton");
+      const predictionLabel = document.getElementById("prediction");
+
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+
+      // 加载预训练模型（这里没有预训练模型，示例中直接创建模型）
+      function loadModel() {
+        const model = tf.sequential();
+        model.add(tf.layers.flatten({ inputShape: [560, 560, 1] }));
+        model.add(tf.layers.dense({ units: 128, activation: "relu" }));
+        model.add(tf.layers.dense({ units: 10, activation: "softmax" }));
+        model.compile({ optimizer: "adam", loss: "categoricalCrossentropy", metrics: ["accuracy"] });
+        return model;
+      }
+
+      // 预测手写数字
+      async function predictDigit(model, canvas) {
+        const imgData = canvas.getContext("2d").getImageData(0, 0, 280, 280);
+        const imgArray = new Uint8Array(imgData.data);
+
+        // 对像素值进行预处理
+        const input = imgArray.map((value) => value / 255);
+
+        //確認乘積
+        // const shapeProduct = 1 * 560 * 560 * 1;
+        // console.log(shapeProduct);
+        // console.log(imgArray.length);
+        // if (input.length === shapeProduct) {
+        //   // 输入数组的长度与形状的乘积相等，可以继续创建张量
+        //   const inputTensor = tf.tensor([input]).reshape([560, 560, 1]);
+        // } else {
+        //   // 输入数组的长度与形状的乘积不相等，可能需要进行调整
+        //   console.error("输入数组的长度与形状的乘积不相等");
+        // }
+        const inputTensor = tf.tensor([input]).reshape([1, 560, 560, 1]);
+
+        // 使用模型进行预测
+        const prediction = model.predict(inputTensor);
+        console.log(prediction);
+        const predictedIndex = prediction.argMax(-1).dataSync()[0];
+        predictionLabel.textContent = `Predicted Digit: ${predictedIndex}`;
+      }
+
+      // 绘制手写数字
+      function draw(event) {
+        if (!isDrawing) return;
+
+        context.lineWidth = 10;
+        context.lineCap = "round";
+        context.strokeStyle = "black";
+
+        context.beginPath();
+        context.moveTo(lastX, lastY);
+        context.lineTo(event.offsetX, event.offsetY);
+        context.stroke();
+
+        lastX = event.offsetX;
+        lastY = event.offsetY;
+      }
+
+      canvas.addEventListener("mousedown", (event) => {
+        isDrawing = true;
+        lastX = event.offsetX;
+        lastY = event.offsetY;
+      });
+
+      canvas.addEventListener("mousemove", draw);
+      canvas.addEventListener("mouseup", () => (isDrawing = false));
+      canvas.addEventListener("mouseout", () => (isDrawing = false));
+
+      predictButton.addEventListener("click", () => predictDigit(model, canvas));
+
+      let model = loadModel();
+      canvas.style.cursor = "crosshair";
+    </script>
+  </body>
+</html>
