@@ -32,11 +32,14 @@
 
       // 加载预训练模型（这里没有预训练模型，示例中直接创建模型）
       function loadModel() {
+        // 1.選擇model=>設定範圍
+        // 序列模型是一种线性层堆叠的神经网络，适用于许多简单的模型结构
         const model = tf.sequential();
         model.add(tf.layers.flatten({ inputShape: [560, 560, 1] }));
         model.add(tf.layers.dense({ units: 128, activation: "relu" }));
         model.add(tf.layers.dense({ units: 10, activation: "softmax" }));
         model.compile({ optimizer: "adam", loss: "categoricalCrossentropy", metrics: ["accuracy"] });
+
         return model;
       }
 
