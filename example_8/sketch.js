@@ -15,7 +15,10 @@ function preload() {
 function setup() {
   createCanvas(400, 400);
   classifier.classify(img, gotResult);
-  image(img, 0, 0);
+  // https://p5js.org/reference/#/p5/image
+  image(img, 0, 0, 400, 400);
+  // 繪製另外一張聚焦的圖片
+  image(img, 0, 0, 80, 80, 180, 120, 200, 200);
 }
 
 // A function to run when we get any errors and the results
@@ -29,4 +32,8 @@ function gotResult(error, results) {
     createDiv(`Label: ${results[0].label}`);
     createDiv(`Confidence: ${nf(results[0].confidence, 0, 2)}`);
   }
+}
+
+function mousePressed() {
+  img.resize(500, 100);
 }
