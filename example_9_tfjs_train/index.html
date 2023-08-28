@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="X-UA-Compatible"
+      content="IE=edge"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>TensorFlow.js Tutorial</title>
+    <!-- Import TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.0.0/dist/tf.min.js"></script>
+    <!-- Import tfjs-vis -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+    <!-- Import the data file -->
+    <script
+      src="data.js"
+      type="module"
+    ></script>
+    <!-- Import the main script file -->
+  </head>
+  <body>
+    <canvas
+      id="canvas"
+      width="560"
+      height="560"
+      style="border: 1px solid black"
+    ></canvas>
+    <img
+      id="showImg"
+      src=""
+      alt=""
+    />
+    <button id="predictButton">Predict</button>
+    <p>Prediction: <span id="prediction"></span></p>
+  </body>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    const predictButton = document.getElementById("predictButton");
+    const predictionLabel = document.getElementById("prediction");
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    // 加载预训练模型（这里没有预训练模型，示例中直接创建模型）
+    function getModel() {
+      const model = tf.sequential();
+
+      const IMAGE_WIDTH = 280;
+      const IMAGE_HEIGHT = 280;
+      const IMAGE_CHANNELS = 1;
+
+      // In the first layer of our convolutional neural network we have
+      // to specify the input shape. Then we specify some parameters for
+      // the convolution operation that takes place in this layer.
+      model.add(
+        tf.layers.conv2d({
+          inputShape: [IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS],
+          kernelSize: 5,
+          filters: 8,
+          strides: 1,
+          activation: "relu",
+          kernelInitializer: "varianceScaling",
+        })
+      );
+
+      // The MaxPooling layer acts as a sort of downsampling using max values
+      // in a region instead of averaging.
+      model.add(tf.layers.maxPooling2d({ poolSize: [2, 2], strides: [2, 2] }));
+
+      // Repeat another conv2d + maxPooling stack.
+      // Note that we have more filters in the convolution.
+      model.add(
+        tf.layers.conv2d({
+          kernelSize: 5,
+          filters: 16,
+          strides: 1,
+          activation: "relu",
+          kernelInitializer: "varianceScaling",
+        })
+      );
+      model.add(tf.layers.maxPooling2d({ poolSize: [2, 2], strides: [2, 2] }));
+
+      // Now we flatten the output from the 2D filters into a 1D vector to prepare
+      // it for input into our last layer. This is common practice when feeding
+      // higher dimensional data to a final classification output layer.
+      model.add(tf.layers.flatten());
+
+      // Our last layer is a dense layer which has 10 output units, one for each
+      // output class (i.e. 0, 1, 2, 3, 4, 5, 6, 7, 8, 9).
+      const NUM_OUTPUT_CLASSES = 10;
+      model.add(
+        tf.layers.dense({
+          units: NUM_OUTPUT_CLASSES,
+          kernelInitializer: "varianceScaling",
+          activation: "softmax",
+        })
+      );
+
+      // Choose an optimizer, loss function and accuracy metric,
+      // then compile and return the model
+      const optimizer = tf.train.adam();
+      model.compile({
+        optimizer: optimizer,
+        loss: "categoricalCrossentropy",
+        metrics: ["accuracy"],
+      });
+
+      return model;
+    }
+
+    // 预测手写数字
+    async function predictDigit(model, canvas) {
+      const imgData = canvas.getContext("2d").getImageData(0, 0, 140, 140);
+      console.log(imgData);
+      const imgArray = new Uint8Array(imgData.data);
+
+      // 对像素值进行预处理
+      const input = imgArray.map((value) => {
+        value / 255;
+      });
+
+      //確認乘積
+      const shapeProduct = 1 * 280 * 280 * 1;
+      console.log(shapeProduct);
+      console.log(imgArray.length);
+      if (input.length === shapeProduct) {
+        // 输入数组的长度与形状的乘积相等，可以继续创建张量
+      } else {
+        // 输入数组的长度与形状的乘积不相等，可能需要进行调整
+        console.error("输入数组的长度与形状的乘积不相等");
+      }
+
+      const inputTensor = tf.tensor([input]).reshape([1, 280, 280, 1]);
+      console.log(inputTensor);
+
+      // 使用模型进行预测
+      const prediction = model.predict(inputTensor);
+      const predictedIndex = prediction.argMax(-1).dataSync()[0];
+      console.log(predictedIndex);
+      predictionLabel.textContent = `Predicted Digit: ${predictedIndex}`;
+    }
+
+    // 绘制手写数字
+    function draw(event) {
+      if (!isDrawing) return;
+
+      context.lineWidth = 10;
+      context.lineCap = "round";
+      context.strokeStyle = "black";
+
+      context.beginPath();
+      context.moveTo(lastX, lastY);
+      context.lineTo(event.offsetX, event.offsetY);
+      context.stroke();
+
+      lastX = event.offsetX;
+      lastY = event.offsetY;
+    }
+
+    canvas.addEventListener("mousedown", (event) => {
+      isDrawing = true;
+      lastX = event.offsetX;
+      lastY = event.offsetY;
+    });
+
+    canvas.addEventListener("mousemove", draw);
+    canvas.addEventListener("mouseup", () => (isDrawing = false));
+    canvas.addEventListener("mouseout", () => (isDrawing = false));
+
+    predictButton.addEventListener("click", () => predictDigit(model, canvas));
+
+    let model = getModel();
+    canvas.style.cursor = "crosshair";
+  </script>
+</html>
